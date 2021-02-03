@@ -46,62 +46,91 @@ Summarizing the above, we can note the following advantages of Page Object Model
 - **Helps with reusing code**: As already mentioned, all screens are independent. By using POM, one can use the test code for any one screen, and reuse it in another test case. There is no need to rewrite code, thus saving time and effort.
 - **Readability and Reliability of scripts**: When all screens have independent C# files, one can easily identify actions that will be performed on a particular screen by navigating through the C# file. If a change must be made to a certain section of code, it can be efficiently done without affecting other files.
 
-## Naming Convention
+## Good Practices
 
 It is important to put some standards in place to reduce the maintenance of the overall test classes.
 
-Prefix name of web elements with something which describes type of web elements whether it is textbox or button or something else. For example:
+### Naming Convention
 
-| Category |      UI/Control type       | Prefix |     Example     |
-|----------|----------------------------|--------|-----------------|
-| Basic    | Button                     | btn    | btnExit         |
-| Basic    | Check box                  | chk    | chkReadOnly     |
-| Basic    | Combo box                  | cbo    | cboEnglish      |
-| Basic    | Common dialog              | dlg    | dlgFileOpen     |
-| Basic    | Date picker                | dtp    | dtpPublished    |
-| Basic    | Dropdown List / Select tag | ddl    | ddlCountry      |
-| Basic    | Form                       | frm    | frmEntry        |
-| Basic    | Frame                      | fra    | fraLanguage     |
-| Basic    | Image                      | img    | imgIcon         |
-| Basic    | Label                      | lbl    | lblHelpMessage  |
-| Basic    | Links/Anchor Tags          | lnk    | lnkForgotPwd    |
-| Basic    | List box                   | lst    | lstPolicyCodes  |
-| Basic    | Menu                       | mnu    | mnuFileOpen     |
-| Basic    | Radio button / group       | rdo    | rdoGender       |
-| Basic    | RichTextBox                | rtf    | rtfReport       |
-| Basic    | Table                      | tbl    | tblCustomer     |
-| Basic    | TabStrip                   | tab    | tabOptions      |
-| Basic    | Text Area                  | txa    | txaDescription  |
-| Basic    | Text box                   | txt    | txtLastName     |
-| Complex  | Chevron                    | chv    | chvProtocol     |
-| Complex  | Data grid                  | dgd    | dgdTitles       |
-| Complex  | Data list                  | dbl    | dblPublisher    |
-| Complex  | Directory list box         | dir    | dirSource       |
-| Complex  | Drive list box             | drv    | drvTarget       |
-| Complex  | File list box              | fil    | filSource       |
-| Complex  | Panel/Fieldset             | pnl    | pnlGroup        |
-| Complex  | ProgressBar                | prg    | prgLoadFile     |
-| Complex  | Slider                     | sld    | sldScale        |
-| Complex  | Spinner                    | spn    | spnPages        |
-| Complex  | StatusBar                  | sta    | staDateTime     |
-| Complex  | Timer                      | tmr    | tmrAlarm        |
-| Complex  | Toolbar                    | tlb    | tlbActions      |
-| Complex  | TreeView                   | tre    | treOrganization |
+Prefix name of web elements with something which describes type of web elements whether it is input or button or something else. In addition, web element name should be given as it is shown on UI. E.g. `btnNext`, `lnkFooter`, etc.
 
 Add postfix "Page" with all pages you develop. It will segregate page classes from other available classes. E.g. `LoginPage`, `HomePage`, etc.
 
-Web element name should be given as it is shown on UI. For example, if email has label as "Email Address", name this web element as `txtEmailAddress`.
+Use PascalCasing for naming classes and methods, follow common capitalization conventions appropriate to developing in C#: [Capitalization Conventions](https://docs.microsoft.com/en-us/dotnet/standard/design-guidelines/capitalization-conventions)
 
-Prefix action name with method which performs on web element. For example:
+```
+// Good
+public class HomePage
 
-|            Action          |  Prefix  |        Example          |
-|----------------------------|----------|-------------------------|
-| Click                      | clk      | clkSigin, clkRegister   |
-| Type                       | set      | setEmail, setPassword   |
-| Check a check box          | chk      | chkGender               |
-| Select value from drop down| select   | selectYear, selectMonth |
+// Bad
+public class homepage
+public class homePage
+```
 
-Use PascalCasing for naming methods, follow common capitalization conventions appropriate to developing in C#: [Capitalization Conventions](https://docs.microsoft.com/en-us/dotnet/standard/design-guidelines/capitalization-conventions)
+Use camelCasing for local variables and parameters (the first word starts with lower case, following words with upper case).
+
+Don't use abbreviations – there is no limit on the number of characters a class, method, or variable name can have, so avoid creating confusion or inconsistencies by using abbreviations.
+
+Use nouns for class names, and verbs for methods.
+
+Avoid using the underscore character (the only exception are private variables):
+
+```
+// Good
+private WebDriverWait _wait;
+var homePage = new HomePage(Driver);
+
+// Bad
+var another_page = homePage.GoToAnotherPage();
+```
+
+Include the word "Tests" at the end of your test classes (e.g. `FacultyTests`).
+
+### Independent Tests
+
+This is a very important aspect of a good and stable automation framework. If you want your tests to be reliable, avoid making one test depend on another i.e. create the test data for TestCase2 in TestCase1. This may cause unexpected test failures, which can consume valuable time spent debugging and fixing, without actually uncovering any issues in the application under test. Also, if you want to consider test parallelization, you can't control the order in which the tests run, which means that the dependent test might run before the test it depends on.
+
+### Locator Strategy
+
+An important part of UI automation is using the right locators. The locator strategies available in Selenium C# are:
+- Id
+- Name
+- LinkText
+- PartialLinkText
+- TagName
+- ClassName
+- CssSelector
+- XPath
+
+When available and unique, the most recommended locator strategy is the `ID`. It's the fastest locator, and it's also easy to use. `ClassName` is also a good locator strategy, but it also has to be unique, which you probably noticed is not always the case.
+
+When `ID` and `ClassName` are not available, the following preferred locator is the `CssSelector`, which is a pattern that uses attributes and their values.
+
+After `CssSelector`, comes the `XPath`, which locates the elements in the DOM structure. The `LinkText` and `PartialLinkText` are available only when the element you need to locate is a link, otherwise they cannot be used. `Name` and `TagName` should be used only if they are unique, or when you need to find multiple elements with the same name, or tag name, using the `FindElements` method.
+
+### Use Waits
+
+#### Avoid using Thread.Sleep
+
+`Thread.Sleep` will make the test wait the amount of time passed as a parameter, statically. For example, if you set the sleep time to 5 seconds, and then try to find an element, you have to wait the whole 5 seconds before the test continues, even if it takes only 3 seconds to load the element. This adds unnecessary delays to your code. Two seconds may not seem like a lot, but if you use this in hundreds of tests, they amount to a few minutes.
+
+A good practice is to use Selenium `WebDriver`'s wait methods instead.
+
+#### Wait methods
+
+The explicit wait delays the execution for the specified amount of time until a certain condition is met. However, unlike the Sleep, if, for instance, the element is found before the time elapses, the test will continue normally. It applies only to a specific element.
+
+Here's a code sample of an explicit wait that waits for an element to be clickable:
+
+```
+_wait.Until(ExpectedConditions.ElementToBeClickable(By.PartialLinkText("List View"))).Click();
+```
+
+### Limitations
+
+Keep assertions out of the page object classes. If you want to include a validation inside the test class, make it return a boolean value. This way, you can use it to validate both positive and negative scenarios.
+
+Include Selenium methods in your page object classes, not your test methods. Each web element can be declared as a private variable inside its class, and the methods should be public so they can be accessed from the test classes.
 
 ## Tools
 
